@@ -1,0 +1,28 @@
+# HTCondor submit file for ECG ORCA Rank=4
+
+universe = vanilla
+log = logs/ecg_orca_r4_$(Cluster).log
+error = logs/ecg_orca_r4_$(Cluster).err
+output = logs/ecg_orca_r4_$(Cluster).out
+
+# Executable and arguments
+executable = run_job.sh
+arguments = ecg_orca_r4
+
+# Transfer files
+transfer_input_files = orca_lora_project.tar.gz, requirements.txt, setup.sh, run_job.sh
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+# Resource requirements
+request_cpus = 4
+request_memory = 16GB
+request_disk = 10GB
+
+# Use newer Linux environment
+requirements = (OpSysMajorVer == 8)
+
+# Job duration estimate (4 hours)
++JobDurationCategory = "Medium"
+
+queue 1
