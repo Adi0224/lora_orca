@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Data files (too large for git)
+datasets/
+!datasets/.gitkeep
+*.pkl
+*.npy
+*.tar.gz
+
+# Results (generated, not source)
+results/
+output/
+
+# Logs
+logs/
+*.log
+*.out
+*.err
+
+# CHTC temporary files
+*.submit.log
+*.submit.err
+*.submit.out
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-*
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Temporary files
+tmp/
+temp/
+*.tmp

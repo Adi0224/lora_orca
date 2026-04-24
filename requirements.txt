@@ -1,0 +1,17 @@
+# Core dependencies
+torch>=2.0.0
+transformers>=4.30.0
+peft>=0.4.0
+numpy>=1.24.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+munch>=4.0.0
+PyYAML>=6.0
+
+# OTDD dependencies
+gdown>=4.7.0
+einops>=0.6.0
+timm>=0.9.0
+
+# Visualization (optional for CHTC, needed for local plotting)
+matplotlib>=3.7.0
