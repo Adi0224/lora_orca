@@ -1,0 +1,27 @@
+# HTCondor TEST submit file - Quick 5 min test
+
+universe = vanilla
+log = logs/ecg_test_$(Cluster).log
+error = logs/ecg_test_$(Cluster).err
+output = logs/ecg_test_$(Cluster).out
+
+# Use shell to run job
+shell = bash run_job.sh ecg_test
+
+# Transfer code (data will be in /staging)
+transfer_input_files = ORCA/, run_ecg_test.py, requirements.txt, setup.sh
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+# Conservative resource requests for test
+request_cpus = 2
+request_memory = 4GB
+request_disk = 3GB
+
+# Requirements
+requirements = (OpSysMajorVer == 8)
+
+# Quick test - should complete in ~5-10 minutes
++JobDurationCategory = "Short"
+
+queue 1
