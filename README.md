@@ -64,7 +64,7 @@ python run_experiments.py --method orca --ranks 16 32 --seeds 0 1 2
 | Condition | Objective | Embedder Epochs | Description |
 |-----------|-----------|-----------------|-------------|
 | FPT | l2 | 0 | No distributional alignment (baseline) |
-| ORCA | otdd-exact | 5 | OTDD alignment before fine-tuning |
+| ORCA | otdd-exact | 60 | OTDD alignment before fine-tuning |
 
 ### LoRA Ranks
 
@@ -75,7 +75,15 @@ python run_experiments.py --method orca --ranks 16 32 --seeds 0 1 2
 - **Model**: RoBERTa-base (125M params)
 - **Dataset**: PhysioNet Challenge 2017 ECG (4-class: Normal, AFib, Other, Noisy)
 - **LoRA**: Applied to query and value attention matrices via PEFT
-- **Trainable Params**: ~0.6% (512K / 85M) including LoRA + embedder + predictor
+- **Trainable Params** (LoRA + embedder + predictor, base RoBERTa frozen):
+
+| Rank | LoRA Params | Total Trainable | % of 85M |
+|------|-------------|-----------------|----------|
+| 2 | 73,728 | 489,220 | 0.57% |
+| 4 | 147,456 | 562,948 | 0.66% |
+| 8 | 294,912 | 710,404 | 0.83% |
+| 16 | 589,824 | 1,005,316 | 1.18% |
+| 32 | 1,179,648 | 1,595,140 | 1.87% |
 
 ### ORCA Pipeline
 
