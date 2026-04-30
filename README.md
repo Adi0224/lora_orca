@@ -8,7 +8,6 @@ ORCA's optimal transport-based alignment reduces the effective intrinsic dimensi
 
 ## Setup
 
-### Local (Mac)
 ```bash
 python3 -m venv venv
 source venv/bin/activate
@@ -16,49 +15,68 @@ pip install -r requirements.txt
 cd ORCA/src/otdd && pip install -e . && cd ../../..
 ```
 
-### CHTC
+The ECG dataset (`challenge2017.pkl`) and text alignment data (`text_xs.npy`, `text_ys.npy`) should be placed in `datasets/`.
+
+## Running Experiments
+
+All experiments are run through `run_experiments.py`:
+
 ```bash
-bash setup.sh
+# Dry run (print configs without executing)
+python run_experiments.py --dry-run
+
+# Run everything (30 experiments: 2 methods x 5 ranks x 3 seeds)
+python run_experiments.py
+
+# Run a single method
+python run_experiments.py --method fpt
+python run_experiments.py --method orca
+
+# Run specific ranks and seeds
+python run_experiments.py --method fpt --ranks 2 4 8 16 32 --seeds 0 1
+python run_experiments.py --method orca --ranks 16 32 --seeds 0 1 2
 ```
 
-## Experiments
+### Experiment Conditions
 
-### Local Testing (Synthetic Data)
-```bash
-python run_ecg_fpt_r2.py   # Baseline: No alignment
-python run_ecg_orca_r2.py  # ORCA: With OTDD alignment
-```
+| Condition | Objective | Embedder Epochs | Description |
+|-----------|-----------|-----------------|-------------|
+| FPT | l2 | 0 | No distributional alignment (baseline) |
+| ORCA | otdd-exact | 5 | OTDD alignment before fine-tuning |
 
-### CHTC (Real ECG Data)
-```bash
-# Single experiment
-condor_submit submit_ecg_fpt_r2.sub
+### LoRA Ranks
 
-# All experiments (FPT + ORCA, ranks 2 & 4)
-condor_submit submit_all.sub
-```
+2, 4, 8, 16, 32 -- each run with seeds 0, 1, 2.
 
 ## Architecture
 
 - **Model**: RoBERTa-base (125M params)
-- **Dataset**: PhysioNet Challenge 2017 ECG (4-class classification)
-- **LoRA**: Applied to query & value attention matrices
-- **Ranks Tested**: 2, 4
-- **Trainable Params**: ~0.09% at rank=2 (73,728 / 85M)
+- **Dataset**: PhysioNet Challenge 2017 ECG (4-class: Normal, AFib, Other, Noisy)
+- **LoRA**: Applied to query and value attention matrices via PEFT
+- **Trainable Params**: ~0.6% (512K / 85M) including LoRA + embedder + predictor
+
+### ORCA Pipeline
+
+1. **Stage 1**: Train input embedder to map ECG signals into RoBERTa's token space
+2. **Stage 2** (ORCA only): Align ECG and text embedding distributions via OTDD
+3. **Stage 3**: Fine-tune with only LoRA adapters + embedder + predictor trainable (base RoBERTa frozen)
 
 ## Key Files
 
-- `ORCA/src/embedder.py` - LoRA integration (lines 135-214, 374-393)
-- `ORCA/src/configs/ecg_*.yaml` - Experiment configs
-- `run_ecg_*.py` - Experiment runners
-- `submit_*.sub` - CHTC HTCondor files
+- `run_experiments.py` - Unified experiment runner for all conditions
+- `test_lora_freeze.py` - Verifies LoRA parameter freezing works correctly
+- `plot_results.py` - Generates comparison plots from results
+- `ORCA/src/embedder.py` - LoRA integration via PEFT
+- `ORCA/src/task_configs.py` - Optimizer/scheduler setup with LoRA-aware freezing
+- `ORCA/src/main.py` - Main training loop
+- `ORCA/src/configs/ecg_*.yaml` - Per-condition config files
 
 ## Results
 
-Results are saved to `results/ecg_*_results.json` with full config and metrics.
+Results are saved to `results/ECG/all_<experiment_id>/<seed>/` with model checkpoints, training curves, and test scores. A summary JSON is written to `results/experiment_summary.json` after each batch.
 
 ## References
 
-- ORCA: https://github.com/sjunhongshen/ORCA
+- ORCA: https://arxiv.org/abs/2302.05738
 - LoRA: https://arxiv.org/abs/2106.09685
 - OTDD: https://arxiv.org/abs/2008.09758
