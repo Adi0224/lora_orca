@@ -39,7 +39,7 @@ def make_args(method, rank, seed):
         experiment_id = f'ecg_fpt_r{rank}'
     elif method == 'orca':
         objective = 'otdd-exact'
-        embedder_epochs = 5
+        embedder_epochs = 60
         experiment_id = f'ecg_orca_r{rank}'
     else:
         raise ValueError(f"Unknown method: {method}")
@@ -53,7 +53,7 @@ def make_args(method, rank, seed):
 
         experiment_id=experiment_id,
         seed=seed,
-        epochs=10,
+        epochs=15,
         embedder_epochs=embedder_epochs,
         predictor_epochs=0,
         finetune_method='all',
@@ -67,8 +67,8 @@ def make_args(method, rank, seed):
         lora_dropout=0.1,
 
         batch_size=4,
-        eval_batch_size=100,
-        accum=2,
+        eval_batch_size=1000,
+        accum=16,
         clip=-1,
         validation_freq=1,
 
@@ -78,14 +78,14 @@ def make_args(method, rank, seed):
         ),
         scheduler=Munch(
             name='WarmupLR',
-            params=Munch(warmup_epochs=2, decay_epochs=20, sched=[5, 8], base=0.2)
+            params=Munch(warmup_epochs=5, decay_epochs=200, sched=[20, 40, 60], base=0.2)
         ),
         no_warmup_scheduler=Munch(
             name='StepLR',
-            params=Munch(warmup_epochs=2, decay_epochs=20, sched=[5, 8], base=0.2)
+            params=Munch(warmup_epochs=10, decay_epochs=100, sched=[20, 40, 60], base=0.2)
         ),
 
-        num_workers=0,
+        num_workers=4,
         reproducibility=False,
         valid_split=False,
     )

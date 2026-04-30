@@ -19,7 +19,25 @@ cd ORCA/src/otdd && pip install -e . && cd ../../..
 
 The ORCA source code is included directly in this repo (modified from [Shen et al., 2023](https://arxiv.org/abs/2302.05738) with LoRA integration and bug fixes).
 
-The ECG dataset (`challenge2017.pkl`) and text alignment data (`text_xs.npy`, `text_ys.npy`) should be placed in `datasets/`.
+### Dataset
+
+Download the ECG dataset from [NAS-Bench-360](https://nb360.ml.cmu.edu/) (PhysioNet/CinC Challenge 2017, Tu et al., 2022):
+
+```bash
+pip install gdown
+gdown --fuzzy "https://drive.google.com/file/d/1vp41dhFqCAsEBUld8tXfzC1lRiGm27Aq/view" -O datasets/challenge2017.pkl
+```
+
+Your `datasets/` directory should look like:
+
+```
+datasets/
+├── challenge2017.pkl    # ECG data (8,528 samples, 4 classes)
+├── text_xs.npy          # Text alignment embeddings
+└── text_ys.npy          # Text alignment labels
+```
+
+The text alignment files (`text_xs.npy`, `text_ys.npy`) are generated from RoBERTa on WikiText and are used by ORCA's OTDD alignment stage.
 
 ## Running Experiments
 

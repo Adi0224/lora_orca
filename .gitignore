@@ -58,3 +58,11 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+
+# Upstream ORCA artifacts (not part of our project)
+ORCA/.Rhistory
+ORCA/orca-applications/
+ORCA/orca-spring-batch/
+ORCA/orca-test/
+ORCA/orca-tide/
+ORCA/orca-web/
