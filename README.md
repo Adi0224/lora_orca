@@ -9,11 +9,15 @@ ORCA's optimal transport-based alignment reduces the effective intrinsic dimensi
 ## Setup
 
 ```bash
+git clone https://github.com/Adi0224/lora_orca.git
+cd lora_orca
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 cd ORCA/src/otdd && pip install -e . && cd ../../..
 ```
+
+The ORCA source code is included directly in this repo (modified from [Shen et al., 2023](https://arxiv.org/abs/2302.05738) with LoRA integration and bug fixes).
 
 The ECG dataset (`challenge2017.pkl`) and text alignment data (`text_xs.npy`, `text_ys.npy`) should be placed in `datasets/`.
 
@@ -77,6 +81,15 @@ Results are saved to `results/ECG/all_<experiment_id>/<seed>/` with model checkp
 
 ## References
 
-- ORCA: https://arxiv.org/abs/2302.05738
 - LoRA: https://arxiv.org/abs/2106.09685
 - OTDD: https://arxiv.org/abs/2008.09758
+
+```bibtex
+@inproceedings{shen2023orca,
+  author = {Shen, Junhong and Li, Liam and Dery, Lucio M. and Staten, Corey and Khodak, Mikhail and Neubig, Graham and Talwalkar, Ameet},
+  title = {Cross-Modal Fine-Tuning: Align then Refine},
+  publisher = {ICML},
+  year = {2023},
+  url = {https://arxiv.org/abs/2302.05738}
+}
+```

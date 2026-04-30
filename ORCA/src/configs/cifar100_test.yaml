@@ -1,0 +1,58 @@
+name: CIFAR100-TEST
+environment:
+    image:
+        gpu: docker.io/junhongshen/nb360:nocosmic
+hyperparameters:
+    dataset: CIFAR100
+    embedder_dataset: CIFAR10
+    objective: otdd-exact
+    weight: base
+    maxsamples: 32  # Reduced for testing
+
+    experiment_id: 0
+    seed: 0
+    epochs: 2  # Just 2 epochs for testing
+    embedder_epochs: 2
+    predictor_epochs: 0
+    finetune_method: all
+    drop_out: 0.0
+
+    batch_size: 16  # Smaller batch for Mac
+    eval_batch_size: 100
+    accum: 2  # Reduced accumulation
+    clip: -1
+    validation_freq: 1
+
+    optimizer:
+        name: SGD
+        params:
+            lr: 0.0001
+            betas: [0.9, 0.98]
+            weight_decay: 0.001
+            momentum: 0.9
+
+    scheduler:
+        name: WarmupLR
+        params:
+            warmup_epochs: 1
+            decay_epochs: 10
+            sched: [5, 10]
+            base: 0.2
+
+    no_warmup_scheduler:
+        name: StepLR
+        params:
+            warmup_epochs: 1
+            decay_epochs: 10
+            sched: [5, 10]
+            base: 0.2
+
+    num_workers: 0  # 0 for Mac compatibility
+    reproducibility: False
+    valid_split: False
+
+    # LoRA configuration (optional)
+    use_lora: False  # Set to True to enable LoRA
+    lora_rank: 4
+    lora_alpha: 16
+    lora_dropout: 0.1

@@ -1,0 +1,56 @@
+name: ECG-Test-Quick
+hyperparameters:
+    dataset: ECG
+    embedder_dataset: text
+    objective: l2  # NO ALIGNMENT (faster test)
+    weight: roberta
+    maxsamples: 64  # Small sample size
+
+    experiment_id: ecg_test
+    seed: 0
+    epochs: 1  # Just 1 epoch
+    embedder_epochs: 1  # Just 1 epoch
+    predictor_epochs: 0
+    finetune_method: all
+    drop_out: 0
+    target_seq_len: 64
+
+    # LoRA configuration
+    use_lora: True
+    lora_rank: 2
+    lora_alpha: 16
+    lora_dropout: 0.1
+
+    batch_size: 4
+    eval_batch_size: 100
+    accum: 2
+    clip: -1
+    validation_freq: 1
+
+    optimizer:
+        name: SGD
+        params:
+            lr: 0.000001
+            betas: [0.9, 0.98]
+            weight_decay: 0.1
+            momentum: 0.99
+
+    scheduler:
+        name: WarmupLR
+        params:
+            warmup_epochs: 1
+            decay_epochs: 10
+            sched: [5]
+            base: 0.2
+
+    no_warmup_scheduler:
+        name: StepLR
+        params:
+            warmup_epochs: 1
+            decay_epochs: 10
+            sched: [5]
+            base: 0.2
+
+    num_workers: 0
+    reproducibility: False
+    valid_split: False

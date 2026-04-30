@@ -1,0 +1,55 @@
+name: ORCA-LoRA-Rank2
+hyperparameters:
+    dataset: CIFAR100
+    embedder_dataset: CIFAR10
+    objective: otdd-exact  # WITH ALIGNMENT (ORCA)
+    weight: base
+    maxsamples: 128
+
+    experiment_id: orca_r2
+    seed: 0
+    epochs: 1
+    embedder_epochs: 1
+    predictor_epochs: 0
+    finetune_method: all
+    drop_out: 0.0
+
+    # LoRA configuration
+    use_lora: True
+    lora_rank: 2
+    lora_alpha: 16
+    lora_dropout: 0.1
+
+    batch_size: 8
+    eval_batch_size: 100
+    accum: 1
+    clip: -1
+    validation_freq: 1
+
+    optimizer:
+        name: SGD
+        params:
+            lr: 0.0001
+            betas: [0.9, 0.98]
+            weight_decay: 0.001
+            momentum: 0.9
+
+    scheduler:
+        name: WarmupLR
+        params:
+            warmup_epochs: 1
+            decay_epochs: 10
+            sched: [5]
+            base: 0.2
+
+    no_warmup_scheduler:
+        name: StepLR
+        params:
+            warmup_epochs: 1
+            decay_epochs: 10
+            sched: [5]
+            base: 0.2
+
+    num_workers: 0
+    reproducibility: False
+    valid_split: False
