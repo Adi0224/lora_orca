@@ -16,7 +16,14 @@ nvidia-smi || echo "nvidia-smi not available"
 # Unpack environment and code
 tar -xzf venv.tar.gz
 tar -xzf code.tar.gz
-source venv/bin/activate
+
+# Activate venv manually (avoid hardcoded VIRTUAL_ENV path)
+export PATH="$(pwd)/venv/bin:$PATH"
+export VIRTUAL_ENV="$(pwd)/venv"
+
+# Verify python works
+echo "Python: $(which python)"
+python -c "import munch; print('munch OK')"
 
 # Run experiment
 python run_experiments.py --method $METHOD --ranks $RANK --seeds $SEED
