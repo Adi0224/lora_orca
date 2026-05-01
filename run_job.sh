@@ -13,8 +13,9 @@ echo "Method: $METHOD, Rank: $RANK, Seed: $SEED"
 echo "Host: $(hostname)"
 nvidia-smi || echo "nvidia-smi not available"
 
-# Unpack environment
+# Unpack environment and code
 tar -xzf venv.tar.gz
+tar -xzf code.tar.gz
 source venv/bin/activate
 
 # Install otdd in-place

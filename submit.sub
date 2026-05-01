@@ -5,7 +5,7 @@ arguments = $(method) $(rank) $(seed)
 # File transfer
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
-transfer_input_files = venv.tar.gz, ORCA/, datasets/, run_experiments.py, requirements.txt
+transfer_input_files = venv.tar.gz, code.tar.gz
 transfer_output_remaps = "results_$(method)_r$(rank)_s$(seed).tar.gz = results/results_$(method)_r$(rank)_s$(seed).tar.gz"
 
 # Logs
