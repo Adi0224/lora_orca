@@ -18,9 +18,6 @@ tar -xzf venv.tar.gz
 tar -xzf code.tar.gz
 source venv/bin/activate
 
-# Install otdd in-place
-cd ORCA/src/otdd && pip install -e . --quiet && cd ../../..
-
 # Run experiment
 python run_experiments.py --method $METHOD --ranks $RANK --seeds $SEED
 
