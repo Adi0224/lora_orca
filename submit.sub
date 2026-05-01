@@ -1,0 +1,59 @@
+universe = vanilla
+executable = run_job.sh
+arguments = $(method) $(rank) $(seed)
+
+# File transfer
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = venv.tar.gz, ORCA/, datasets/, run_experiments.py, requirements.txt
+transfer_output_remaps = "results_$(method)_r$(rank)_s$(seed).tar.gz = results/results_$(method)_r$(rank)_s$(seed).tar.gz"
+
+# Logs
+log = logs/$(method)_r$(rank)_s$(seed).log
+output = logs/$(method)_r$(rank)_s$(seed).out
+error = logs/$(method)_r$(rank)_s$(seed).err
+
+# Resources
+request_cpus = 4
+request_memory = 16GB
+request_disk = 10GB
+request_gpus = 1
+
+# GPU requirements
+require_gpus = (GlobalMemoryMb >= 8000)
++WantGPULab = true
++GPUJobLength = "long"
+
+# Queue all 30 experiments
+queue method,rank,seed from (
+  fpt 2 0
+  fpt 2 1
+  fpt 2 2
+  fpt 4 0
+  fpt 4 1
+  fpt 4 2
+  fpt 8 0
+  fpt 8 1
+  fpt 8 2
+  fpt 16 0
+  fpt 16 1
+  fpt 16 2
+  fpt 32 0
+  fpt 32 1
+  fpt 32 2
+  orca 2 0
+  orca 2 1
+  orca 2 2
+  orca 4 0
+  orca 4 1
+  orca 4 2
+  orca 8 0
+  orca 8 1
+  orca 8 2
+  orca 16 0
+  orca 16 1
+  orca 16 2
+  orca 32 0
+  orca 32 1
+  orca 32 2
+)
