@@ -16,7 +16,7 @@ error = logs/$(method)_r$(rank)_s$(seed).err
 # Resources
 request_cpus = 4
 request_memory = 16GB
-request_disk = 10GB
+request_disk = 20GB
 request_gpus = 1
 
 # GPU requirements
