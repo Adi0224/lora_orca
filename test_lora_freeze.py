@@ -6,7 +6,11 @@ Test that LoRA freeze behavior is correct:
 """
 
 import sys
-sys.path.insert(0, 'ORCA/src')
+import os
+
+_repo_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_repo_root, 'ORCA', 'src'))
+sys.path.insert(0, os.path.join(_repo_root, 'ORCA', 'src', 'otdd'))
 
 import torch
 from munch import Munch

@@ -24,7 +24,11 @@ import time
 import json
 from datetime import datetime
 
-sys.path.insert(0, 'ORCA/src')
+# Package `otdd` lives under ORCA/src/otdd/otdd/ with setuptools root ORCA/src/otdd/.
+# Putting only ORCA/src first makes Python load ORCA/src/otdd/ as otdd without the real subpackage.
+_repo_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_repo_root, 'ORCA', 'src'))
+sys.path.insert(0, os.path.join(_repo_root, 'ORCA', 'src', 'otdd'))
 
 from munch import Munch
 from main import main
