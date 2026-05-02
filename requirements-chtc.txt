@@ -1,0 +1,9 @@
+# PyTorch CUDA 11.8 wheels include Pascal (sm_60) kernels for Tesla P100 and newer
+# architectures — avoids "no kernel image is available" on P100 vs default CUDA 12 wheels.
+# Build venv with: pip install -r requirements-chtc.txt -r requirements.txt --no-deps
+# or pin torch only: pip install -r requirements-chtc.txt && pip install -r requirements_otdd.txt ...
+#
+# Simpler: install these first, then the rest from requirements.txt excluding torch duplicates:
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.3.1+cu118
+torchvision==0.18.1+cu118

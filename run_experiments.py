@@ -4,17 +4,14 @@ Run all ORCA + LoRA ECG rank sensitivity experiments.
 
 Conditions:
   - FPT (no alignment):  objective=l2, embedder_epochs=0
-  - ORCA (OTDD alignment): objective=otdd-exact, embedder_epochs=5
+  - ORCA (OTDD alignment): objective=otdd-exact, embedder_epochs=60
   - LoRA ranks: 2, 4, 8, 16, 32
   - Seeds: 0, 1, 2
 
-Usage:
-  python run_experiments.py                  # Run ALL experiments
-  python run_experiments.py --method fpt     # FPT only
-  python run_experiments.py --method orca    # ORCA only
-  python run_experiments.py --ranks 2 4      # Specific ranks
-  python run_experiments.py --seeds 0 1      # Specific seeds
-  python run_experiments.py --dry-run        # Print configs without running
+Combos listed in SKIP_COMPLETED_COMBOS skip training entirely (manual list — update when you
+finish more jobs).  Override with --rerun-listed-once.
+
+PyTorch wheel must include your GPU architecture (see requirements-chtc.txt for Tesla P100 / sm_60).
 """
 
 import sys
@@ -25,7 +22,6 @@ import json
 from datetime import datetime
 
 # Package `otdd` lives under ORCA/src/otdd/otdd/ with setuptools root ORCA/src/otdd/.
-# Putting only ORCA/src first makes Python load ORCA/src/otdd/ as otdd without the real subpackage.
 _repo_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_repo_root, 'ORCA', 'src'))
 sys.path.insert(0, os.path.join(_repo_root, 'ORCA', 'src', 'otdd'))
@@ -34,17 +30,38 @@ from munch import Munch
 from main import main
 
 
+# Completed on CHTC (large result archives; valid test_score.npy). Edit when you ship more jobs.
+SKIP_COMPLETED_COMBOS = frozenset({
+    ('fpt', 2, 0),
+    ('fpt', 2, 1),
+    ('fpt', 2, 2),
+    ('fpt', 4, 0),
+    ('fpt', 4, 1),
+    ('fpt', 4, 2),
+    ('fpt', 8, 0),
+    ('fpt', 8, 1),
+})
+
+
+def experiment_id_for(method: str, rank: int) -> str:
+    if method == 'fpt':
+        return f'ecg_fpt_r{rank}'
+    if method == 'orca':
+        return f'ecg_orca_r{rank}'
+    raise ValueError(f"Unknown method: {method}")
+
+
 def make_args(method, rank, seed):
     """Create experiment args for a given method/rank/seed combination."""
 
     if method == 'fpt':
         objective = 'l2'
         embedder_epochs = 0
-        experiment_id = f'ecg_fpt_r{rank}'
+        experiment_id = experiment_id_for(method, rank)
     elif method == 'orca':
         objective = 'otdd-exact'
         embedder_epochs = 60
-        experiment_id = f'ecg_orca_r{rank}'
+        experiment_id = experiment_id_for(method, rank)
     else:
         raise ValueError(f"Unknown method: {method}")
 
@@ -64,7 +81,6 @@ def make_args(method, rank, seed):
         drop_out=0,
         target_seq_len=64,
 
-        # LoRA configuration
         use_lora=True,
         lora_rank=rank,
         lora_alpha=16,
@@ -95,7 +111,7 @@ def make_args(method, rank, seed):
     )
 
 
-def run_single_experiment(method, rank, seed, dry_run=False):
+def run_single_experiment(method, rank, seed, *, dry_run=False, skip_hardlisted=True):
     """Run a single experiment configuration."""
     label = f"{method.upper()} | rank={rank} | seed={seed}"
     print("\n" + "=" * 70)
@@ -109,11 +125,22 @@ def run_single_experiment(method, rank, seed, dry_run=False):
         print(f"  embedder_epochs: {args.embedder_epochs}")
         print(f"  epochs:          {args.epochs}")
         print(f"  lora_rank:       {args.lora_rank}")
-        print(f"  maxsamples:      {args.maxsamples}")
         print(f"  experiment_id:   {args.experiment_id}")
         print(f"  seed:            {args.seed}")
         print("  [DRY RUN - not executing]")
         return None
+
+    if skip_hardlisted and (method, rank, seed) in SKIP_COMPLETED_COMBOS:
+        print("  SKIP (listed in SKIP_COMPLETED_COMBOS — already finished)")
+        return {
+            'method': method,
+            'rank': rank,
+            'seed': seed,
+            'result': None,
+            'elapsed': 0.0,
+            'status': 'skipped',
+            'reason': 'hardlisted_complete',
+        }
 
     start = time.time()
     try:
@@ -149,16 +176,18 @@ def main_cli():
     parser.add_argument('--method', choices=['fpt', 'orca', 'all'], default='all',
                         help='Which method to run (default: all)')
     parser.add_argument('--ranks', type=int, nargs='+', default=[2, 4, 8, 16, 32],
-                        help='LoRA ranks to test (default: 2 4 8 16 32)')
+                        help='LoRA ranks (default: 2 4 8 16 32)')
     parser.add_argument('--seeds', type=int, nargs='+', default=[0, 1, 2],
-                        help='Random seeds (default: 0 1 2)')
+                        help='Seeds (default: 0 1 2)')
     parser.add_argument('--dry-run', action='store_true',
-                        help='Print experiment configs without running')
+                        help='Print configs without running')
+    parser.add_argument('--rerun-listed', action='store_true',
+                        help='Train even when (method,rank,seed) ∈ SKIP_COMPLETED_COMBOS.')
     args = parser.parse_args()
 
     methods = ['fpt', 'orca'] if args.method == 'all' else [args.method]
+    skip_hardlisted = not args.rerun_listed
 
-    # Build experiment list
     experiments = []
     for method in methods:
         for rank in args.ranks:
@@ -171,17 +200,23 @@ def main_cli():
     print(f"  Ranks:   {args.ranks}")
     print(f"  Seeds:   {args.seeds}")
     print(f"  Total:   {len(experiments)} experiments")
+    print(f"  skip hardlisted combos: {skip_hardlisted}  (use --rerun-listed to disable)")
     print(f"  Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 70)
 
     results = []
     for i, (method, rank, seed) in enumerate(experiments):
         print(f"\n>>> Experiment {i+1}/{len(experiments)}")
-        result = run_single_experiment(method, rank, seed, dry_run=args.dry_run)
+        result = run_single_experiment(
+            method,
+            rank,
+            seed,
+            dry_run=args.dry_run,
+            skip_hardlisted=skip_hardlisted,
+        )
         if result:
             results.append(result)
 
-    # Summary
     if not args.dry_run and results:
         print("\n" + "=" * 70)
         print("  EXPERIMENT SUMMARY")
@@ -190,22 +225,27 @@ def main_cli():
         total_time = sum(r['elapsed'] for r in results)
         successful = [r for r in results if r['status'] == 'success']
         failed = [r for r in results if r['status'] == 'failed']
+        skipped = [r for r in results if r['status'] == 'skipped']
 
-        print(f"  Completed: {len(successful)}/{len(results)}")
-        print(f"  Failed:    {len(failed)}")
-        print(f"  Total time: {total_time:.1f}s ({total_time/60:.1f} min)")
+        print(f"  Success: {len(successful)}/{len(results)}")
+        print(f"  Skipped: {len(skipped)}")
+        print(f"  Failed:  {len(failed)}")
+        print(f"  Train time (excl. skips): {total_time:.1f}s ({total_time/60:.1f} min)")
 
         if failed:
-            print("\n  Failed experiments:")
+            print("\n  Failed:")
             for r in failed:
-                print(f"    - {r['method'].upper()} rank={r['rank']} seed={r['seed']}: {r.get('error', 'unknown')}")
+                print(f"    - {r['method'].upper()} r={r['rank']} s={r['seed']}: {r.get('error', 'unknown')}")
+        if skipped:
+            print("\n  Skipped (hardcoded already-done):")
+            for r in skipped:
+                print(f"    - {r['method'].upper()} r={r['rank']} s={r['seed']}")
 
-        # Save results summary
         summary_path = 'results/experiment_summary.json'
         os.makedirs('results', exist_ok=True)
         with open(summary_path, 'w') as f:
             json.dump(results, f, indent=2, default=str)
-        print(f"\n  Results saved to {summary_path}")
+        print(f"\n  Summary written to {summary_path}")
 
     print(f"\n  Finished: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 

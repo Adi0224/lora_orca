@@ -14,26 +14,19 @@ output = logs/$(method)_r$(rank)_s$(seed).out
 error = logs/$(method)_r$(rank)_s$(seed).err
 
 # Resources
+# request_memory = host RAM (not GPU). request_gpus = number of GPUs.
 request_cpus = 4
 request_memory = 16GB
 request_disk = 20GB
 request_gpus = 1
 
-# GPU requirements
-require_gpus = (GlobalMemoryMb >= 8000)
+# GPU VRAM (GlobalMemoryMb). Lower ⇒ more GPUs match (raise if you hit OOM).
+require_gpus = (GlobalMemoryMb >= 4096)
 +WantGPULab = true
 +GPUJobLength = "long"
 
-# Queue all 30 experiments
+# 22 jobs only: finished FPT r2/r4 (all seeds) and FPT r8 s0/s1 are omitted (see SKIP_COMPLETED_COMBOS).
 queue method,rank,seed from (
-  fpt 2 0
-  fpt 2 1
-  fpt 2 2
-  fpt 4 0
-  fpt 4 1
-  fpt 4 2
-  fpt 8 0
-  fpt 8 1
   fpt 8 2
   fpt 16 0
   fpt 16 1
