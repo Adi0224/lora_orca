@@ -9,15 +9,12 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 
 import numpy as np
-import seaborn as sns
 import torch
 
 import scipy.stats
 from scipy.stats import pearsonr, spearmanr
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-from adjustText import adjust_text
 
 import pdb
 
@@ -198,6 +195,8 @@ def distance_scatter(d, topk=10, show=True, save_path =None):
         labels  = ['{}'.format(p) for p in keys]
     x_coord = np.linspace(0,1,len(keys))
 
+    from adjustText import adjust_text
+
     fig, ax = plt.subplots(figsize=(10,10))
     ax.scatter(x_coord, dists, s = min(100/len(keys), 1))
     texts=[]
@@ -215,6 +214,8 @@ def distance_scatter(d, topk=10, show=True, save_path =None):
     if show: plt.show()
 
 def dist_adapt_joinplot(df, yvar='delta', show=True, type='joinplot', save_path = None):
+    import seaborn as sns
+
     j = sns.jointplot(x='dist', y=yvar, data=df, kind="reg", height=7)
     j.annotate(scipy.stats.pearsonr)
     y_label = 'Acc. Improvement w/ Adapt'#.format(direction[yvar])
@@ -242,6 +243,9 @@ def dist_adapt_regplot(df, yvar, xvar='dist', xerrvar=None, yerrvar=None,
                     ax=None,
                     show=True,
                     save_path=None):
+
+    import seaborn as sns
+    from adjustText import adjust_text
 
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
@@ -419,6 +423,8 @@ def imshow_group_boundaries(ax, gU, gV, group_names, side = 'both', alpha=0.2, l
 def method_comparison_plot(df, hue_var = 'method', style_var = 'method',
                           figsize = (15,4), ax = None, save_path=None):
         """ Produce plots comparing OTDD variants in terms of runtime and distance """
+        import seaborn as sns
+
         if ax is None:
             fig, ax = plt.subplots(1, 2, figsize=figsize)
 
