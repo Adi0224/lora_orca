@@ -1,8 +1,10 @@
 import os
+import json
 import argparse
 import random
 
 import numpy as np
+from sklearn.metrics import classification_report, confusion_matrix
 import torch
 import torch.backends.cudnn as cudnn
 from timeit import default_timer
@@ -114,13 +116,22 @@ def main(use_determined, args, info=None, context=None):
                     id_current = save_state(use_determined, args, context, model, optimizer, scheduler, ep, n_train, train_score, train_losses, embedder_stats)
                 id_best = id_current
             
-
         if ep == args.epochs + args.predictor_epochs - 1:
             print("\n------- Start Test --------")
             test_scores = []
             test_model = model
+            ce_collect = args.dataset == 'ECG'
+
             test_time_start = default_timer()
-            test_loss, test_score = evaluate(context, args, test_model, test_loader, loss, metric, n_test, decoder, transform, fsd_epoch=200 if args.dataset == 'FSD' else None)
+            if ce_collect:
+                test_loss, test_score, yt_last, yp_last = evaluate(
+                    context, args, test_model, test_loader, loss, metric, n_test, decoder, transform,
+                    fsd_epoch=200 if args.dataset == 'FSD' else None, collect_ce_preds=True)
+            else:
+                test_loss, test_score = evaluate(
+                    context, args, test_model, test_loader, loss, metric, n_test, decoder, transform,
+                    fsd_epoch=200 if args.dataset == 'FSD' else None)
+                yt_last = yp_last = None
             test_time_end = default_timer()
             test_scores.append(test_score)
 
@@ -128,7 +139,15 @@ def main(use_determined, args, info=None, context=None):
             
             test_model, _, _, _, _, _ = load_state(use_determined, args, context, test_model, optimizer, scheduler, n_train, id_best, test=True)
             test_time_start = default_timer()
-            test_loss, test_score = evaluate(context, args, test_model, test_loader, loss, metric, n_test, decoder, transform, fsd_epoch=200 if args.dataset == 'FSD' else None)
+            if ce_collect:
+                test_loss, test_score, yt_best, yp_best = evaluate(
+                    context, args, test_model, test_loader, loss, metric, n_test, decoder, transform,
+                    fsd_epoch=200 if args.dataset == 'FSD' else None, collect_ce_preds=True)
+            else:
+                test_loss, test_score = evaluate(
+                    context, args, test_model, test_loader, loss, metric, n_test, decoder, transform,
+                    fsd_epoch=200 if args.dataset == 'FSD' else None)
+                yt_best = yp_best = None
             test_time_end = default_timer()
             test_scores.append(test_score)
 
@@ -138,9 +157,16 @@ def main(use_determined, args, info=None, context=None):
                 checkpoint_metadata = {"steps_completed": (ep + 1) * n_train, "epochs": ep}
                 with context.checkpoint.store_path(checkpoint_metadata) as (path, uuid):
                     np.save(os.path.join(path, 'test_score.npy'), test_scores)
+                    if ce_collect:
+                        save_ecg_classification_artifacts(path, 'last', yt_last, yp_last)
+                        save_ecg_classification_artifacts(path, 'best', yt_best, yp_best)
             else:
-                path = 'results/'  + args.dataset +'/' + str(args.finetune_method) + '_' + str(args.experiment_id) + "/" + str(args.seed)
+                path = 'results/' + args.dataset + '/' + str(args.finetune_method) + '_' + str(args.experiment_id) + "/" + str(args.seed)
+                os.makedirs(path, exist_ok=True)
                 np.save(os.path.join(path, 'test_score.npy'), test_scores)
+                if ce_collect:
+                    save_ecg_classification_artifacts(path, 'last', yt_last, yp_last)
+                    save_ecg_classification_artifacts(path, 'best', yt_best, yp_best)
 
            
         if use_determined and context.preempt.should_preempt():
@@ -204,10 +230,35 @@ def train_one_epoch(context, args, model, optimizer, scheduler, loader, loss, te
     return train_loss / temp
 
 
-def evaluate(context, args, model, loader, loss, metric, n_eval, decoder=None, transform=None, fsd_epoch=None):
+def save_ecg_classification_artifacts(save_dir, tag, y_true, y_pred, label_names=("N", "A", "O", "~")):
+    out_dir = os.path.join(save_dir, "confusion_matrix")
+    os.makedirs(out_dir, exist_ok=True)
+    labels = np.arange(len(label_names), dtype=int)
+    y_true = np.asarray(y_true, dtype=np.int64).ravel()
+    y_pred = np.asarray(y_pred, dtype=np.int64).ravel()
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+    np.save(os.path.join(out_dir, "confusion_matrix_%s.npy" % tag), cm)
+    np.save(os.path.join(out_dir, "y_true_%s.npy" % tag), y_true)
+    np.save(os.path.join(out_dir, "y_pred_%s.npy" % tag), y_pred)
+    rep_dict = classification_report(
+        y_true, y_pred, labels=labels, target_names=list(label_names),
+        output_dict=True, zero_division=0,
+    )
+    with open(os.path.join(out_dir, "classification_report_%s.json" % tag), "w") as f:
+        json.dump(rep_dict, f, indent=2)
+    rep_txt = classification_report(
+        y_true, y_pred, labels=labels, target_names=list(label_names), zero_division=0,
+    )
+    with open(os.path.join(out_dir, "classification_report_%s.txt" % tag), "w") as f:
+        f.write(rep_txt)
+
+
+def evaluate(context, args, model, loader, loss, metric, n_eval, decoder=None, transform=None, fsd_epoch=None, collect_ce_preds=False):
     model.eval()
     
     eval_loss, eval_score = 0, 0
+    collect_ecg = bool(collect_ce_preds and fsd_epoch is None and args.dataset == "ECG")
+    y_true_parts, y_pred_parts = ([], []) if collect_ecg else (None, None)
     
     if fsd_epoch is None:
 
@@ -251,6 +302,13 @@ def evaluate(context, args, model, loader, loss, metric, n_eval, decoder=None, t
                     eval_score += metric(outs, ys).item()
                     n_eval += 1
 
+                    if collect_ecg:
+                        yt = ys.detach().cpu().numpy()
+                        if yt.ndim > 1:
+                            yt = yt.argmax(axis=-1)
+                        y_true_parts.append(np.asarray(yt).ravel())
+                        y_pred_parts.append(outs.argmax(dim=1).detach().cpu().numpy().ravel())
+
                     ys, outs, n_data = [], [], 0
 
             eval_loss /= n_eval
@@ -274,6 +332,10 @@ def evaluate(context, args, model, loader, loss, metric, n_eval, decoder=None, t
         eval_score = 1-np.mean([stat['AP'] for stat in stats])
         eval_loss /= n_eval
 
+    if collect_ecg:
+        y_true = np.concatenate(y_true_parts, axis=0)
+        y_pred = np.concatenate(y_pred_parts, axis=0)
+        return eval_loss, eval_score, y_true, y_pred
     return eval_loss, eval_score
 
 
