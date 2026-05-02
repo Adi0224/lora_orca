@@ -930,7 +930,6 @@ def load_openml(root, batch_size, did, valid_split=-1, num_workers=4, get_shape=
 
 
 from sklearn.model_selection import StratifiedShuffleSplit
-import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
@@ -962,6 +961,7 @@ def prepare_data(root, did, context=False, mixup=0):
     
 def load_openml_dataset(did=61, ignore_cat=False):
     import openml
+    import pandas as pd
 
     ds = openml.datasets.get_dataset(did)
     # values
